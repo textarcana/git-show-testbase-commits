@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ] || [ -z $2 ]
+then
+  echo "
+Shows commits only on the testbase -- that is, any commit to any sort
+of test file anywhere in the repository.
+
+Usage:
+    `basename $0` <path> <days ago>
+
+eg: `basename $0` ~/my-repo 3"
+  exit 1
+fi
+
+pushd $1 > /dev/null
+
+git --no-pager log --since="-$2 days ago" --format="%h" --numstat . | \
+    perl -wlane 'print $F[2] if $F[2]' | \
+    sort | uniq \
+    > /tmp/`basename $0`
+
+    egrep -I '\b([tT]est(s|ing)?)\b' /tmp/`basename $0` | \
+        xargs -I @ sh -c 'git --no-pager log -n1 -z --format="%h (%ar) %an: " @; echo @' \
+        2> /dev/null
+
+popd > /dev/null
